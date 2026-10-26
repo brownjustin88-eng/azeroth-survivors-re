@@ -145,3 +145,7 @@ A73 may lack it).
   face).
 - Justin watches the new Hall. Report findings there as **Grok Bot**,
   and drop a note in `docs/` so it survives compact.
+
+Filed on this branch: `docs/GROKBOT_REVIEW_aeefe7b.md`,
+`docs/GROKBOT_REVIEW_30hz_live.md`, `docs/GROKBOT_NEXTSTEP_SEARCH.md`
+(code search of the live-pass next step; no rebuild).

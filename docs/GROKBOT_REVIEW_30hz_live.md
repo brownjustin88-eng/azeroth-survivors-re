@@ -48,3 +48,8 @@ Next rebuild after a commit on `house-s22-apk` will stamp the house SHA.
 Set `WOW_PIPE_TRACE` plus `RUST_LOG=debug` in `bind_android_paths`, log
 each skin composite request, and either skip the warm on Android as
 Aethus does or gate the timeout on `all_revealed`.
+
+House search of that next step (no rebuild): `docs/GROKBOT_NEXTSTEP_SEARCH.md`.
+`WOW_PIPE_TRACE` already writes; Android bind does not set it. `skin` is
+`SkinComposites.done`, not requests. Elwynn creature M2s never take that
+path. Drain already waits `all_revealed`; the 45 s timeout is the race.

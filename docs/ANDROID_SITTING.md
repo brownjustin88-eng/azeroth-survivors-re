@@ -174,3 +174,24 @@ in APK ~99M). Sideload USB `R5CT62YWN6V` Success. `am start --display 0`
 
 Git: house fork `brownjustin88-eng/azeroth-survivors-re` branch
 `house-s22-apk`. Origin/main still `dd5e330`.
+
+## 2026-10-26 — Grok Bot next-step search (no rebuild)
+
+Justin: look into Grok Bot’s “`WOW_PIPE_TRACE` + log each skin
+composite + skip warm or wait `all_revealed`.” Search only.
+
+- `WOW_PIPE_TRACE` already appends in `watch_pipelines`. Android bind
+  does not set it.
+- `SkinComposites::request` has no debug log. Journal `skin` is
+  `done` census only; Elwynn wolves never take that path (`Unit` + no
+  Extra → `look=None` → attach proceeds). `skin=0` is expected, not
+  proof bodies were never requested.
+- Skip-warm is `$WOW_CAPTURE` only. Drain already uses `all_revealed`;
+  Android 45 s timeout fires first and leaves `warmed_once` false.
+  Menagerie order is static-plain first.
+- Aethus Linux ELF still has `pipe_warm`. The skip Grok Bot named is
+  the wasm page, not this tree.
+- Hung USB logcat killed. Wifi ADB `192.168.0.68:5555` up; game pid
+  gone. No cargo-ndk.
+
+Note: `docs/GROKBOT_NEXTSTEP_SEARCH.md`.
