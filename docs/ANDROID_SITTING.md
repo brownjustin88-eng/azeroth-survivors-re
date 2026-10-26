@@ -210,3 +210,9 @@ attach (56 parts, textures ready). 967 pipelines, 651 skinned. Only blob
 shadow draws. `WOW_WARM_SKIP` same, so 45 s warm is not the cause.
 Suspect `wow_skin_model` vertex SSBO palettes. House note
 `docs/GROKBOT_DIAG_RESULT.md`. No house Rust edit.
+
+Hall `tv-1792998726908`: Grok Bot is running forced bind pose, then
+slot/bone coloring, and reading Adreno vertex storage limits. Trees
+visible + bodies missing confirmed. Next if bind pose is empty: move
+palette off the unsized tail (bound array or texture) Android-only.
+Still their clone.
