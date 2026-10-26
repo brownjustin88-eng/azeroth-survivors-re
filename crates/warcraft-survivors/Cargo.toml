@@ -14,9 +14,15 @@ dev = ["benilla-app/dev"]
 
 [dependencies]
 benilla-app = { path = "../benilla-app", default-features = false }
+bevy.workspace = true
 
 [build-dependencies]
 benilla-buildstamp = { path = "../benilla-buildstamp" }
+
+[lib]
+name = "warcraft_survivors"
+crate-type = ["lib", "cdylib"]
+path = "src/lib.rs"
 
 [[bin]]
 name = "warcraft-survivors"

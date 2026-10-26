@@ -5,7 +5,7 @@ DATA_DIR := wow-data
 DATA     := $(DATA_DIR)/Data
 WASM     := web/dist/wenilla_bg.wasm
 
-.PHONY: help build start native fetch-data toolchain wasm clean
+.PHONY: help build start native fetch-data toolchain wasm clean apk apk-install apk-data
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -27,6 +27,15 @@ start: ## Serve the game at http://127.0.0.1:8090 (run `make build` first)
 
 native: fetch-data ## Build + run the native desktop version
 	WOW_DATA=$(DATA) cargo run --release -p warcraft-survivors
+
+apk: ## Cross-compile the S22 Ultra APK (engine only; MPQs stay on the phone)
+	./scripts/android-build.sh
+
+apk-data: ## Push wow-data/Data to /sdcard/azeroth-survivors/Data
+	./scripts/android-push-data.sh
+
+apk-install: ## Sideload the debug APK and grant storage
+	./scripts/android-install.sh
 
 clean: ## Remove the fetched game data and wasm build output
 	rm -rf web/dist $(DATA_DIR)

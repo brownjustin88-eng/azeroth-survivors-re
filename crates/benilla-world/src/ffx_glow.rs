@@ -126,11 +126,12 @@ pub struct FfxSwitches {
 }
 
 impl Default for FfxSwitches {
-    /// Each registers "1".
+    /// Each registers "1" on desktop. Android defaults `ffxGlow` off: the glow chain is a
+    /// full-screen extra pass at 1440×3088.
     fn default() -> Self {
         Self {
             master: true,
-            glow: true,
+            glow: cfg!(not(target_os = "android")),
             death: true,
         }
     }

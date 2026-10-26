@@ -1,5 +1,5 @@
 //! The mode's screens, in bevy_ui since FrameXML is off: the class and hero pick, the in-run HUD,
-//! the level-up cards, pause, and the results.
+//! the level-up cards, pause, Options ([`super::options`]), and the results.
 
 use std::collections::HashMap;
 
@@ -9,6 +9,7 @@ use bevy::prelude::*;
 use bevy::render::render_resource::AsBindGroup;
 use bevy::shader::ShaderRef;
 use bevy::ui_render::ui_material::{MaterialNode, UiMaterial};
+use bevy::time::Real;
 use bevy::window::PrimaryWindow;
 
 use super::data::{self, AbilityDef, Effect, Kind, PassiveDef, Stat};
@@ -162,13 +163,35 @@ pub(super) struct TipBody;
 #[derive(Component, Clone, Copy, PartialEq)]
 pub(super) enum UiAction {
     Resume,
+    Options,
     MainMenu,
     Quit,
 }
 
 /// The colour a button returns to when not hovered.
 #[derive(Component)]
-pub(super) struct BaseColor(Color);
+pub(super) struct BaseColor(pub Color);
+
+/// On-screen wall-time readout. The APK is `--no-default-features`, so the
+/// `feature = "dev"` perf HUD is absent; this pill is the player-build stand-in.
+/// The CSV journal (`fpsJournal` / `WOW_FPS_JOURNAL`) is the per-pass record.
+#[derive(Component)]
+pub(super) struct CostPill;
+
+#[derive(Resource)]
+pub(super) struct CostWindow {
+    samples: std::collections::VecDeque<f32>,
+    last_text: f32,
+}
+
+impl Default for CostWindow {
+    fn default() -> Self {
+        Self {
+            samples: std::collections::VecDeque::with_capacity(60),
+            last_text: 0.0,
+        }
+    }
+}
 
 #[derive(Clone, Copy)]
 pub(super) enum Choice {
@@ -703,7 +726,10 @@ pub(super) fn setup_hud(
             root.spawn((
                 OfferRow,
                 Node {
+                    flex_wrap: FlexWrap::Wrap,
+                    justify_content: JustifyContent::Center,
                     column_gap: Val::Px(22.0),
+                    row_gap: Val::Px(16.0),
                     // Room for a hovered card's lift.
                     margin: UiRect::new(Val::ZERO, Val::ZERO, Val::Px(28.0), Val::Px(16.0)),
                     ..default()
@@ -735,6 +761,7 @@ pub(super) fn setup_hud(
             root.spawn(centered(f, "Paused", 46.0, GOLD));
             for (label, action) in [
                 ("Resume", UiAction::Resume),
+                ("Options", UiAction::Options),
                 ("Abandon run", UiAction::MainMenu),
                 ("Quit game", UiAction::Quit),
             ] {
@@ -855,6 +882,22 @@ pub(super) fn setup_hud(
                 b.spawn(text(f, "Quit game", 15.0, DIM));
             });
         });
+
+    super::options::spawn(&mut commands, f);
+
+    // Always-on cost pill (player build). Sits below the S22 punch-hole (~100 px).
+    commands.spawn((
+        CostPill,
+        text(f, "— ms", 14.0, GOLD),
+        Node {
+            position_type: PositionType::Absolute,
+            left: Val::Px(12.0),
+            top: Val::Px(56.0),
+            ..default()
+        },
+        GlobalZIndex(440),
+        bevy::ui::FocusPolicy::Pass,
+    ));
 }
 
 /// The menu's hero is the run's hero: respawned whenever the pick changes.
@@ -1031,6 +1074,7 @@ pub(super) fn buttons(
     >,
     mut next: ResMut<NextState<Phase>>,
     mut exit: MessageWriter<AppExit>,
+    mut options: ResMut<super::options::OptionsOpen>,
     phase: Res<State<Phase>>,
 ) {
     for (interaction, action, base, mut bg) in &mut presses {
@@ -1041,6 +1085,7 @@ pub(super) fn buttons(
                 bg.0 = BUTTON_HOT;
                 match (*action, *phase.get()) {
                     (UiAction::Resume, Phase::Paused) => next.set(Phase::Playing),
+                    (UiAction::Options, Phase::Paused) => options.0 = true,
                     (UiAction::MainMenu, Phase::Paused | Phase::GameOver) => next.set(Phase::Menu),
                     (UiAction::Quit, Phase::Paused | Phase::GameOver) => {
                         exit.write(AppExit::Success);
@@ -1054,10 +1099,12 @@ pub(super) fn buttons(
 
 pub(super) fn keys(
     keys: Res<ButtonInput<KeyCode>>,
+    pad: Res<super::touch::TouchPad>,
     phase: Res<State<Phase>>,
     mut selection: ResMut<Selection>,
     mut run: ResMut<Run>,
     mut next: ResMut<NextState<Phase>>,
+    mut options: ResMut<super::options::OptionsOpen>,
 ) {
     match phase.get() {
         Phase::Menu => {
@@ -1066,13 +1113,17 @@ pub(super) fn keys(
             }
         }
         Phase::Playing => {
-            if keys.just_pressed(KeyCode::Escape) {
+            if keys.just_pressed(KeyCode::Escape) || pad.pause_just {
                 next.set(Phase::Paused);
             }
         }
         Phase::Paused => {
-            if keys.just_pressed(KeyCode::Escape) {
-                next.set(Phase::Playing);
+            if keys.just_pressed(KeyCode::Escape) || pad.pause_just {
+                if options.0 {
+                    options.0 = false;
+                } else {
+                    next.set(Phase::Playing);
+                }
             }
         }
         Phase::LevelUp => {}
@@ -1491,16 +1542,50 @@ pub(super) fn fill_art(
     }
 }
 
-/// The reference lays its UI out on a screen 768 units tall at any resolution (`useUiScale` off).
+/// The 1.12 glue screen is 1024×768; survivors lays out in those units (`useUiScale` off).
+/// 768 is the *short* axis. Scaling from `height` alone on a portrait window (S22 1440×3088)
+/// shrinks the logical width to ~358 and piles the tower, cards and HUD on top of each other.
+/// Using the short side keeps the same element size in portrait as landscape already has.
 pub(super) fn apply_ui_scale(
     windows: Query<&Window, With<PrimaryWindow>>,
     mut scale: ResMut<UiScale>,
 ) {
     let Ok(window) = windows.single() else { return };
-    let want = window.height() / 768.0;
+    let short = window.width().min(window.height());
+    let want = short / 768.0;
     if want > 0.0 && (scale.0 - want).abs() > 1e-4 {
         scale.0 = want;
     }
+}
+
+/// Rolling wall-time on the HUD. 60-frame window, text at 4 Hz. This is not the
+/// GPU split — that lives in `fps-journal.csv`.
+pub(super) fn cost_pill(
+    time: Res<Time<Real>>,
+    mut win: ResMut<CostWindow>,
+    mut label: Query<&mut Text, With<CostPill>>,
+) {
+    const KEEP: usize = 60;
+    win.samples.push_back(time.delta_secs() * 1000.0);
+    while win.samples.len() > KEEP {
+        win.samples.pop_front();
+    }
+    let now = time.elapsed_secs();
+    if now - win.last_text < 0.25 {
+        return;
+    }
+    win.last_text = now;
+    if win.samples.is_empty() {
+        return;
+    }
+    let mut v: Vec<f32> = win.samples.iter().copied().collect();
+    v.sort_by(f32::total_cmp);
+    let mean = v.iter().sum::<f32>() / v.len() as f32;
+    let p95 = v[((v.len() - 1) as f32 * 0.95).round() as usize];
+    let Ok(mut text) = label.single_mut() else {
+        return;
+    };
+    text.0 = format!("{mean:.1} ms  p95 {p95:.0}");
 }
 
 /// Between the hero's feet and the top of its plate's bar, in gx units.
@@ -2194,7 +2279,6 @@ pub(super) fn show_panels(
         Query<(&mut Visibility, &mut Node), With<MenuRoot>>,
         Query<(&mut Visibility, &mut Node), With<HudRoot>>,
         Query<(&mut Visibility, &mut Node), With<LevelUpRoot>>,
-        Query<(&mut Visibility, &mut Node), With<PauseRoot>>,
         Query<(&mut Visibility, &mut Node), With<OverRoot>>,
     )>,
 ) {
@@ -2224,9 +2308,6 @@ pub(super) fn show_panels(
         set(root, p == Phase::LevelUp);
     }
     for root in &mut roots.p3() {
-        set(root, p == Phase::Paused);
-    }
-    for root in &mut roots.p4() {
         set(root, p == Phase::GameOver);
     }
 }

@@ -195,6 +195,7 @@ pub(super) fn drive_hero(
     aim: Res<AimPoint>,
     world: WorldPoint,
     auto: Option<Res<super::auto::Auto>>,
+    pad: Res<super::touch::TouchPad>,
     mut player: ResMut<crate::player::Player>,
     mut hero: Query<(&mut Transform, &mut MovementState, &mut Hero)>,
 ) {
@@ -219,6 +220,10 @@ pub(super) fn drive_hero(
                 }
                 if keys.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]) {
                     dir.x += 1.0;
+                }
+                if pad.dir.length_squared() > 0.04 {
+                    dir.x += pad.dir.x;
+                    dir.z -= pad.dir.y;
                 }
                 // In orbit mode WASD is camera-relative; in fixed mode it stays world-relative.
                 if rig.mode == CamMode::Orbit {
@@ -272,7 +277,11 @@ pub(super) fn drive_hero(
             let ground = world.terrain_height_under(pos).unwrap_or(pos.y);
             let playing = *phase.get() == Phase::Playing && run.dead_t.is_none();
             // Space hops: lift off the terrain, then gravity brings the hero back down.
-            if playing && keys.just_pressed(KeyCode::Space) && hm.vy == 0.0 && hm.air == 0.0 {
+            if playing
+                && (keys.just_pressed(KeyCode::Space) || pad.jump_just)
+                && hm.vy == 0.0
+                && hm.air == 0.0
+            {
                 hm.vy = JUMP_SPEED;
             }
             if playing && (hm.vy != 0.0 || hm.air > 0.0) {
@@ -323,6 +332,7 @@ pub(super) fn place_camera(
     mouse: Res<ButtonInput<MouseButton>>,
     motion: Res<AccumulatedMouseMotion>,
     keys: Res<ButtonInput<KeyCode>>,
+    pad: Res<super::touch::TouchPad>,
     player: Res<crate::player::Player>,
     world: WorldPoint,
     hero: Query<&Transform, (With<Hero>, Without<WorldCamera>)>,
@@ -330,7 +340,7 @@ pub(super) fn place_camera(
 ) {
     // `C` unlocks the camera to swing and tilt; locking it again snaps back to the top-down view,
     // so world-relative WASD lines up with the screen again.
-    if keys.just_pressed(KeyCode::KeyC) {
+    if keys.just_pressed(KeyCode::KeyC) || pad.cam_just {
         rig.mode = match rig.mode {
             CamMode::Fixed => CamMode::Orbit,
             CamMode::Orbit => {

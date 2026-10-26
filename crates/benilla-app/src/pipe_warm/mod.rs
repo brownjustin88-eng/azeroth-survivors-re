@@ -284,6 +284,12 @@ const WARM_SETTLE_SECS: f32 = 0.25;
 /// Rigs revealed per frame. On macOS the pipeline cache drains its whole backlog in one frame,
 /// inline, so this bounds each frame's compile batch to within one 43 ms audio device cycle.
 /// `$WOW_WARM_SLICE` overrides it; 0 means unpaced.
+/// Adreno first-boot compiles skinned M2 pipelines slowly; a smaller slice keeps more of the
+/// menagerie behind the cover so creature bodies exist when Goldshire starts (spell kits are
+/// billboards and often make it; the 3D bodies were the 25-pipeline timeout).
+#[cfg(target_os = "android")]
+const WARM_REVEAL_PER_FRAME: usize = 4;
+#[cfg(not(target_os = "android"))]
 const WARM_REVEAL_PER_FRAME: usize = 24;
 
 /// The pacing slice actually in force, `$WOW_WARM_SLICE` applied once.
@@ -318,7 +324,11 @@ type WarmRigVis<'w, 's> = Query<
 >;
 
 /// Never hold a cover unbounded: on timeout the pass warns and releases, and what remains
-/// compiles live.
+/// compiles live. Android: Adreno 730 first-boot shader compile of the M2 menagerie overran
+/// 10s with ~25 pipelines still pending, so units spawned as spell FX with no body.
+#[cfg(target_os = "android")]
+const WARM_TIMEOUT_SECS: f32 = 45.0;
+#[cfg(not(target_os = "android"))]
 const WARM_TIMEOUT_SECS: f32 = 10.0;
 fn run_warm_pass(
     mut commands: Commands,

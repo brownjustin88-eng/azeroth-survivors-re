@@ -37,6 +37,7 @@ impl Plugin for GluePlugin {
                 crate::glue_strings::load_glue_strings.after(benilla_assets::AssetSet::Open),
             )
             .init_resource::<GlueClicks>()
+            .add_plugins(crate::touch_pointer::TouchPointerPlugin)
             .init_resource::<dialog::GlueDialog>()
             .add_message::<dialog::GlueDialogAnswer>()
             .add_systems(PreUpdate, glue_clicks.after(bevy::ui::UiSystems::Focus))

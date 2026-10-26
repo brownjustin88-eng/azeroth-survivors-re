@@ -129,6 +129,12 @@ impl Build {
 
         let mut libs = vec![version.lib_name().to_string()];
         match target {
+            // `aarch64-linux-android` contains "linux", which would pull
+            // `LUA_USE_READLINE` (no NDK headers). POSIX + dlopen is enough.
+            _ if target.contains("android") => {
+                config.define("LUA_USE_POSIX", None);
+                config.define("LUA_USE_DLOPEN", None);
+            }
             _ if target.contains("linux") => {
                 config.define("LUA_USE_LINUX", None);
             }
