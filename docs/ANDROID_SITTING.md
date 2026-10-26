@@ -152,3 +152,25 @@ APK — MT8696 A73 may lack it).
 5. Oboe exclusive low-latency callback; drop any residual mixer spin.
 6. Touch: stick is already its own pointer id. Next: 120 Hz sampling, deadzone curve, haptic on JUMP, menu buttons on raw `TouchInput` as well as the cursor hold.
 7. MPQ: mmap from UFS, BLP decode off the render thread (already IO pool). MPQs stay beside the APK.
+
+## 2026-10-26 00:53 ET — 30/60/120 APK live
+
+cargo-ndk **EXIT:0** 04:53Z (~82 min). APK 201M, `.so` 188M (stripped
+in APK ~99M). Sideload USB `R5CT62YWN6V` Success. `am start --display 0`
+(this monkey has no `--display`). pid **20865** stayed up.
+
+- Java: `maxFps 30 -> mode 5 1440x3088 @30.000002Hz`. Window
+  `preferredRefreshRate=30.0 preferredDisplayMode=5`.
+- dumpsys Built-in Screen: `modeId 5, renderFrameRate 30.000002`.
+- Rust: `video: maxFps 30`. File `benilla-config/max-fps` = `30`.
+- AdapterInfo Adreno 730 Vulkan.
+- Loading screen cleared 46.8s (6548/6548). `pipe_warm` TIMED OUT with
+  **4** pipelines pending (earlier sitting was 25).
+- Journal after load (`t>=50`, 56 s): **mean_ms 33.36 → 30.0 fps**,
+  p95 37.88, main_ms 18.44, gpu_ms 2.40, **gpu_glow 0.000**, gpu_ui 1.69.
+  csv on phone `.../benilla-config/Diagnostics/fps-journal.csv`.
+- Landscape `ROTATION_90` this launch (`fullUser`). Goldshire coords
+  ~-9548, 115. Zone music Forest.
+
+Git: house fork `brownjustin88-eng/azeroth-survivors-re` branch
+`house-s22-apk`. Origin/main still `dd5e330`.
