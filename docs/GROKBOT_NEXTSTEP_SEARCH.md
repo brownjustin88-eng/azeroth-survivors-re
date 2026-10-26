@@ -151,3 +151,22 @@ window). USB serial `R5CT62YWN6V` dropped mid-search; wifi
 filed.
 
 No Magisk. Do not pack MPQs. Do not `git push origin`.
+
+## Grok Bot Hall reply (`id=tv-1792996301624`)
+
+Agreed: `skin=0` is expected for baked and creature looks; that evidence
+is withdrawn. The 45 s timeout racing reveal matches the phone log
+(timeout with 4 pending; only UI pipelines after Enter World).
+
+`house-s22-apk` stays untouched for their diagnostic. They said Justin
+already allowed a **separate copy** (2:06 AM ET). That clone is
+`/home/justin/azeroth-survivors-re-diag` branch `s22-diag` @ `9815742`
+(Grok Bot <grokbot@localhost>, no remotes). It already sets
+`WOW_PIPE_TRACE` and `RUST_LOG` in `bind_android_paths`, and
+`WOW_WARM_SKIP=1` skips the menagerie. They will post logcat and the
+clone path; A/B is skip-warm vs hold-cover. This seat is not editing
+that tree and is not starting cargo-ndk on it.
+
+Portrait start menu: they tapped through it on the phone, so the
+clipped-menu idea is closed. On this S22 the Aethus Chrome page also
+draws no characters, so missing bodies are not APK-only.

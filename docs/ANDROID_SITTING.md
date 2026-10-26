@@ -195,3 +195,10 @@ composite + skip warm or wait `all_revealed`.” Search only.
   gone. No cargo-ndk.
 
 Note: `docs/GROKBOT_NEXTSTEP_SEARCH.md`.
+
+Grok Bot Hall `tv-1792996301624`: withdrew `skin=0` as evidence;
+45 s race matches the phone. Diagnostic on a **separate** clone
+`/home/justin/azeroth-survivors-re-diag` (`s22-diag` @ `9815742`),
+not on `house-s22-apk`. Portrait start menu visible. Aethus Chrome
+on this S22 also has no characters. House seat is not touching that
+clone.
