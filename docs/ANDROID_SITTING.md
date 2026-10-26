@@ -202,3 +202,11 @@ Grok Bot Hall `tv-1792996301624`: withdrew `skin=0` as evidence;
 not on `house-s22-apk`. Portrait start menu visible. Aethus Chrome
 on this S22 also has no characters. House seat is not touching that
 clone.
+
+## 2026-10-26 — s22-diag: attach works, draw does not
+
+Grok Bot Hall `tv-1792998272066`: diag `e4331cc`. Hero + 11–24 enemies
+attach (56 parts, textures ready). 967 pipelines, 651 skinned. Only blob
+shadow draws. `WOW_WARM_SKIP` same, so 45 s warm is not the cause.
+Suspect `wow_skin_model` vertex SSBO palettes. House note
+`docs/GROKBOT_DIAG_RESULT.md`. No house Rust edit.
