@@ -15,6 +15,8 @@ mod hud;
 mod menu;
 mod minimap;
 mod mobility;
+mod options;
+mod touch;
 mod units;
 
 use benilla_world::schedule::WorldStage;
@@ -39,6 +41,7 @@ impl Plugin for SurvivorsPlugin {
         // Present before `OnEnter(InWorld)`, where the UI lifecycle decides not to load FrameXML.
         app.insert_resource(crate::run_mode::CaptureMode)
             .add_plugins(grade::plugin)
+            .add_plugins(touch::plugin)
             .init_state::<Phase>()
             .init_resource::<Rng>()
             .init_resource::<Selection>()
@@ -49,6 +52,9 @@ impl Plugin for SurvivorsPlugin {
             .init_resource::<enemies::Spawner>()
             .init_resource::<hud::Offer>()
             .init_resource::<cards::PendingPick>()
+            .init_resource::<options::OptionsOpen>()
+            .init_resource::<options::Page>()
+            .init_resource::<hud::CostWindow>()
             .add_message::<abilities::Hit>()
             .add_message::<enemies::Loot>()
             .add_plugins(bevy::ui_render::UiMaterialPlugin::<hud::SweepUiMaterial>::default())
@@ -116,6 +122,18 @@ impl Plugin for SurvivorsPlugin {
             .add_systems(
                 Update,
                 (
+                    options::clicks,
+                    options::refresh,
+                    options::sync_page,
+                    options::gate_pause,
+                    options::show,
+                )
+                    .chain()
+                    .after(hud::show_panels),
+            )
+            .add_systems(
+                Update,
+                (
                     hud::apply_ui_scale,
                     hud::fill_art,
                     hud::xp_hover,
@@ -128,6 +146,7 @@ impl Plugin for SurvivorsPlugin {
                     .chain()
                     .after(hud::show_panels),
             )
+            .add_systems(Update, hud::cost_pill)
             .add_systems(OnEnter(Phase::Playing), unpause)
             .add_systems(OnEnter(Phase::LevelUp), (pause, hud::roll_offer))
             .add_systems(OnEnter(Phase::Paused), pause)

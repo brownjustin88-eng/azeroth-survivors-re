@@ -3,11 +3,15 @@
 
 use bevy::app::{PluginGroupBuilder, TaskPoolOptions, TaskPoolPlugin};
 use bevy::prelude::*;
+#[cfg(target_os = "android")]
+use bevy::window::{PresentMode, WindowMode};
+#[cfg(target_os = "android")]
+use std::num::NonZero;
 
 use crate::thread_qos;
 
 /// `DefaultPlugins` with benilla's engine tuning applied, around the caller's primary window.
-#[cfg_attr(not(target_arch = "wasm32"), allow(unused_mut))]
+#[allow(unused_mut)]
 pub fn tuned_default_plugins(mut primary_window: Window) -> PluginGroupBuilder {
     // The web build's canvas binding: with no `canvas` selector winit creates its own `<canvas>`
     // and appends it to `<body>` at a fixed size, ignoring the full-viewport element
@@ -20,7 +24,17 @@ pub fn tuned_default_plugins(mut primary_window: Window) -> PluginGroupBuilder {
         primary_window.fit_canvas_to_parent = true;
         primary_window.prevent_default_event_handling = true;
     }
-    DefaultPlugins
+    // Phone: fill the panel, Fifo to the Display.Mode Java pins (default 30 Hz on the
+    // S22 Ultra). Latency 1 keeps the swapchain from queuing extra 33 ms frames.
+    #[cfg(target_os = "android")]
+    {
+        primary_window.mode =
+            WindowMode::BorderlessFullscreen(MonitorSelection::Primary);
+        primary_window.present_mode = PresentMode::Fifo;
+        primary_window.resizable = false;
+        primary_window.desired_maximum_frame_latency = NonZero::new(1);
+    }
+    let mut group = DefaultPlugins
         .set(WindowPlugin {
             primary_window: Some(primary_window),
             ..default()
@@ -60,15 +74,38 @@ pub fn tuned_default_plugins(mut primary_window: Window) -> PluginGroupBuilder {
                     })),
                     // `WOW_THREADS=1` serialises the frame's systems, a diagnostic: a defect that
                     // survives it is not a race between two systems.
-                    max_threads: match std::env::var("WOW_THREADS").ok().as_deref() {
-                        Some("1") => 1,
-                        _ => TaskPoolOptions::default().compute.max_threads,
+                    // 8 Gen 1 is 1×X2 + 3×A710 + 4×A510. Cap compute at the four big cores so
+                    // Bevy's frame does not spread onto the A510s.
+                    max_threads: if std::env::var("WOW_THREADS").ok().as_deref() == Some("1") {
+                        1
+                    } else if cfg!(target_os = "android") {
+                        4
+                    } else {
+                        TaskPoolOptions::default().compute.max_threads
                     },
                     ..TaskPoolOptions::default().compute
                 },
                 ..default()
             },
-        })
+        });
+    #[cfg(target_os = "android")]
+    {
+        use bevy::render::settings::{
+            Backends, MemoryHints, PowerPreference, WgpuSettings, WgpuSettingsPriority,
+        };
+        group = group.set(bevy::render::RenderPlugin {
+            render_creation: WgpuSettings {
+                backends: Some(Backends::VULKAN),
+                power_preference: PowerPreference::HighPerformance,
+                priority: WgpuSettingsPriority::Functionality,
+                memory_hints: MemoryHints::Performance,
+                ..default()
+            }
+            .into(),
+            ..default()
+        });
+    }
+    group
         // Sound is kira behind our own mixer; `bevy_audio` is off by feature (workspace
         // `Cargo.toml`). Kept though they look idle: gizmos (bowstring, fishing line), sprites (the
         // FrameXML quad pass), picking, TextPlugin (glue text), PostProcessPlugin (glow bloom) and

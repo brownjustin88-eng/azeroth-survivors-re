@@ -155,6 +155,44 @@ impl Default for VideoConfig {
     }
 }
 
+/// Snap a `maxFps` write to 0 / 30 / 60 / 120. 0 means the panel's own rate.
+pub(crate) fn clamp_max_fps(raw: f32) -> u32 {
+    let n = raw.round() as u32;
+    match n {
+        0 => 0,
+        30 => 30,
+        60 => 60,
+        120 => 120,
+        _ if n >= 90 => 120,
+        _ if n >= 45 => 60,
+        _ => 30,
+    }
+}
+
+/// Push `maxFps` to the phone: a one-line file Java's Choreographer reads, so the
+/// `Display.Mode` (S22 Ultra 1440×3088 @ 30 / 60 / 120) and ADPF period follow the CVar.
+pub(crate) fn apply_max_fps(hz: u32) {
+    #[cfg(target_os = "android")]
+    {
+        let hz = if hz == 0 { 30 } else { hz };
+        if let Some(home) = crate::local_state::home() {
+            let path = home.join("max-fps");
+            if let Err(e) = crate::local_state::write_atomic(&path, &format!("{hz}\n")) {
+                warn!("video: cannot write {}: {e}", path.display());
+            }
+        }
+        info!("video: maxFps {hz}");
+    }
+    #[cfg(not(target_os = "android"))]
+    {
+        let _ = hz;
+    }
+}
+
+fn boot_max_fps(cvars: Res<crate::cvars::Cvars>) {
+    apply_max_fps(clamp_max_fps(cvars.num("maxFps").unwrap_or(0.0)));
+}
+
 /// The present mode a vsync setting means. On is `PresentMode::default()` (`Fifo`, never tears),
 /// not `AutoVsync`, which resolves to `FifoRelaxed` and can tear on a late frame.
 pub(crate) fn present_mode(vsync: bool) -> PresentMode {
@@ -208,6 +246,8 @@ pub(crate) fn on_cvar(
             }
             info!("video: full-screen effects {:?}", *ffx);
         }
+        // `maxFps`: 30 / 60 / 120 on the phone, 0 = panel rate on desktop.
+        "maxfps" => apply_max_fps(clamp_max_fps(v)),
         "farclip" => view.farclip = v.clamp(*FARCLIP_RANGE.start(), *FARCLIP_RANGE.end()),
         // Clamped, where the reference refuses an out-of-range write and keeps the value
         // (`0x688d90` echoes "NearClip must be in range 0.01 - 0.33" and returns 0).
@@ -341,7 +381,10 @@ impl Plugin for VideoPlugin {
         );
         app.init_resource::<VideoConfig>()
             .init_resource::<GxRestarts>()
-            .add_systems(Startup, (log_display_session, check_window_pinned).chain())
+            .add_systems(
+                Startup,
+                (log_display_session, check_window_pinned, boot_max_fps).chain(),
+            )
             .add_systems(
                 Update,
                 (
@@ -583,6 +626,9 @@ fn apply_present_mode(
     if !cfg.is_changed() && !forced {
         return;
     }
+    #[cfg(target_os = "android")]
+    let want = PresentMode::Fifo;
+    #[cfg(not(target_os = "android"))]
     let want = present_mode(cfg.vsync);
     let Ok(mut window) = windows.single_mut() else {
         return;
@@ -615,6 +661,9 @@ fn apply_window_mode(
     let Ok(mut window) = windows.single_mut() else {
         return;
     };
+    #[cfg(target_os = "android")]
+    let want = WindowMode::BorderlessFullscreen(MonitorSelection::Current);
+    #[cfg(not(target_os = "android"))]
     let want = window_mode(cfg.display, cfg.maximize, MonitorSelection::Current);
     let already = matches!(
         (&window.mode, &want),

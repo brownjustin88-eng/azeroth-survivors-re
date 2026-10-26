@@ -52,3 +52,11 @@ __pycache__/
 # The C sysroot for the wasm Lua build — fetched by scripts/web-setup.sh, ~300 MB
 /tools/wasi-sdk/
 /tools/binaryen/
+
+# Android Gradle output and the cargo-ndk .so drop; the wrapper itself is tracked.
+/android/app/build/
+/android/.gradle/
+/android/build/
+/android/app/src/main/jniLibs/
+/android/local.properties
+/android/.cxx/

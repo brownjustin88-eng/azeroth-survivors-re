@@ -88,7 +88,7 @@ fn candidates_from(
     project: Option<&Path>,
     exe_dir: Option<PathBuf>,
 ) -> Vec<PathBuf> {
-    let mut out = Vec::with_capacity(4);
+    let mut out = Vec::with_capacity(5);
 
     // 1. The override; set and empty is no install at all, even in a dev build
     // (`WOW_DATA= cargo play` runs as a player without data).
@@ -97,6 +97,15 @@ fn candidates_from(
             return Vec::new();
         }
         out.push(over);
+    }
+
+    // Android player builds: MPQs live on shared storage, not inside the APK.
+    #[cfg(target_os = "android")]
+    {
+        out.push(PathBuf::from("/storage/emulated/0/azeroth-survivors/Data"));
+        out.push(PathBuf::from(
+            "/storage/emulated/0/Android/data/house.azeroth.survivors/files/Data",
+        ));
     }
 
     // 2. The project folder, dev builds only.

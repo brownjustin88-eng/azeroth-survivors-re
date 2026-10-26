@@ -421,7 +421,7 @@ impl RepairPurse<'_, '_> {
         guids: impl IntoIterator<Item = u64>,
     ) -> bool {
         // `0x4faf30` keeps the full price unless it resolves the vendor's unit.
-        let discount = vendor_store(open, &self.units).map_or(0.0, |vendor| {
+        let discount: f64 = vendor_store(open, &self.units).map_or(0.0, |vendor| {
             crate::target::vendor_price_discount(
                 self.reactions.factions.as_deref(),
                 &self.reactions.reputations,
@@ -478,7 +478,7 @@ fn feed_repair_costs(
     };
     let vendor = vendor_store(&open, &units);
     // The open vendor's price discount (`0x4faf8a`), 0 with none open.
-    let discount = vendor.map_or(0.0, |vendor| {
+    let discount: f64 = vendor.map_or(0.0, |vendor| {
         crate::target::vendor_price_discount(
             reactions.factions.as_deref(),
             &reactions.reputations,

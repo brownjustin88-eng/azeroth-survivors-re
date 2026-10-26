@@ -623,7 +623,15 @@ pub(crate) const REGISTERED: &[Registered] = &[
     // `ffx` as Enable All Shaders (`OptionsFrame.lua:202-204`). The knob is
     // [`benilla_world::ffx_glow::FfxSwitches`].
     same("ffx", "1"),
+    #[cfg(not(target_os = "android"))]
     same("ffxGlow", "1"),
+    #[cfg(target_os = "android")]
+    deviates(
+        "ffxGlow",
+        "0",
+        "1",
+        "Adreno fill-rate: the glow chain is a full-screen extra pass at 1440",
+    ),
     same("ffxDeath", "1"),
     // `pixelShaders` (`0x688712`: name `0x869560`, "0", flags 1, callback `0x688f40`, record
     // `[0xc7f360]`) and `specular` (`0x6886a0`: name `0x8695d8`, "0", flags 1, callback `0x688e20`,
@@ -713,6 +721,18 @@ pub(crate) const REGISTERED: &[Registered] = &[
         "0",
         "benilla's own — 1.12 has no player-side perf log; its nearest thing is the \
          Ctrl+R framerate label, a number with no file behind it",
+    ),
+    // Phone presentation cap. 0 = the panel's own rate (desktop). 30 / 60 / 120 pick a matching
+    // `Display.Mode` on Android (S22 Ultra 1440×3088: mode 5 = 30 Hz, 3 = 60, 1 = 120).
+    ours(
+        "maxFps",
+        if cfg!(target_os = "android") {
+            "30"
+        } else {
+            "0"
+        },
+        "benilla's own — 1.12's gxRefresh is a CRT dropdown this client never applied; \
+         the phone has real 30 / 60 / 120 Hz modes at the same resolution",
     ),
     // `lastCharacterIndex` (`0x402d93`, "0" `0x82e570`, category 4, handle `[0x882674]`), help
     // "Last character selected": a 0-based row (the selection cell `[0x83856c]` under `"%d"`), so

@@ -111,6 +111,7 @@ mod survivors;
 /// The melee swing refusal's latch + 4 s repeat (`SMSG_ATTACKSWING_*`).
 mod swing_refusal;
 mod target;
+mod touch_pointer;
 #[cfg(test)]
 pub(crate) mod test_support;
 mod text_filter;

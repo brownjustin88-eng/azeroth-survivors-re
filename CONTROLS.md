@@ -23,3 +23,7 @@
 The camera follows the hero, locked top-down by default (laptop-friendly). **C** unlocks it so a
 mouse drag swings and tilts it; **C** again snaps it back. In the menu it slowly orbits the
 preview hero. Your race, gender, class and zone are remembered across reloads.
+
+On a phone (native APK, and the same mapping in the browser once wasm is rebuilt): tap the glue
+widgets; in play the left thumb is a stick, **JUMP** / **F** / **C** / **II** sit on the right,
+pinch zooms.
